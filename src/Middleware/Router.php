@@ -3,6 +3,7 @@
 namespace Riimu\Braid\Application\Middleware;
 
 use Riimu\Braid\Application\Application;
+use Riimu\Braid\Template\DefaultTemplate;
 use Riimu\Braid\Template\TemplateInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -20,10 +21,10 @@ class Router
     private $template;
     private $templateName;
 
-    public function __construct(Application $application, TemplateInterface $template)
+    public function __construct(Application $application, TemplateInterface $template = null)
     {
         $this->application = $application;
-        $this->template = $template;
+        $this->template = $template ?: new DefaultTemplate();
         $this->templateName = 'error/page_not_found';
     }
 

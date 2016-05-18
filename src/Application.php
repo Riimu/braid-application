@@ -4,8 +4,6 @@ namespace Riimu\Braid\Application;
 
 use Riimu\Braid\Container\Container;
 use Riimu\Braid\Router\Router;
-use Riimu\Braid\Template\DefaultTemplate;
-use Zend\Diactoros\Request;
 use Zend\Diactoros\Response;
 use Zend\Diactoros\ServerRequestFactory;
 
@@ -28,9 +26,7 @@ class Application
         $this->container = $container;
         $this->stack = new MiddlewareStack();
 
-        $this->container->set([
-            Application::class => $this,
-        ]);
+        $this->container[Application::class] = $this;
     }
 
     public function getRouter()
@@ -69,12 +65,16 @@ class Application
     {
         $middlewares = $this->container->load('config.braid.middlewares', []);
 
-        if (!in_array(Middleware\ErrorHandler::class, $middlewares)) {
-            $this->stack->push(new Middleware\ErrorHandler());
-        }
+        $defaults = [
+            new Middleware\Router($this),
+            new Middleware\ErrorHandler(),
+        ];
 
-        if (!in_array(Middleware\Router::class, $middlewares)) {
-            $this->stack->push(new Middleware\Router($this, new DefaultTemplate()));
+        foreach ($defaults as $default) {
+            if (!in_array(get_class($default), $middlewares)) {
+                array_unshift($middlewares, get_class($default));
+                $this->container[get_class($default)] = $default;
+            }
         }
 
         foreach ($middlewares as $name) {

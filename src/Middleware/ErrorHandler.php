@@ -2,8 +2,14 @@
 
 namespace Riimu\Braid\Application\Middleware;
 
-use Zend\Diactoros\Request;
-use Zend\Diactoros\Response;
+use Riimu\Braid\Template\DefaultTemplate;
+use Riimu\Braid\Template\TemplateInterface;
+use Whoops\Handler\JsonResponseHandler;
+use Whoops\Handler\PrettyPageHandler;
+use Whoops\Run;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use Zend\Diactoros\Response\JsonResponse;
 
 /**
  * ErrorHandler.
@@ -14,9 +20,96 @@ use Zend\Diactoros\Response;
  */
 class ErrorHandler
 {
+    private $debug;
+    private $template;
+    private $errorTemplate;
+    private $jsonType;
+    private $jsonRequest;
+
+    public function __construct(TemplateInterface $template = null)
+    {
+        $this->debug = false;
+        $this->template = $template ?: new DefaultTemplate();
+        $this->errorTemplate = 'error/internal_server_error';
+        $this->jsonType = 'application/json';
+    }
+
+    public function setErrorTemplate($name)
+    {
+        $this->errorTemplate = (string) $name;
+    }
+
+    public function enableDebugMode($enabled = true)
+    {
+        $this->debug = (bool) $enabled;
+    }
+
     public function __invoke(Request $request, Response $response, callable $next)
     {
-        
-        return $next;
+        $handler = new Run();
+        $handler->allowQuit(false);
+        $handler->writeToOutput(false);
+
+        set_error_handler([$handler, 'handleError']);
+
+        try {
+            return $next($request, $response);
+        } catch (\Throwable $exception) {
+            if (!isset($this->jsonRequest)) {
+                $this->jsonRequest = $this->isJsonRequest($request);
+            }
+
+            return $this->getErrorResponse($handler, $exception);
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    private function getErrorResponse(Run $handler, \Throwable $exception)
+    {
+        if ($this->debug) {
+            if ($this->jsonRequest) {
+                $contentType = 'application/json';
+                $pageHandler = new JsonResponseHandler();
+                $pageHandler->addTraceToOutput(true);
+            } else {
+                $contentType = 'text/html; charset=utf-8';
+                $pageHandler = new PrettyPageHandler();
+            }
+
+            $handler->pushHandler($pageHandler);
+
+            return new \Zend\Diactoros\Response(
+                $handler->handleException($exception),
+                500,
+                ['Content-Type' => $contentType]
+            );
+        }
+
+        if ($this->jsonRequest) {
+            return new JsonResponse(['error' => true], 500);
+        }
+
+        return $this->template->renderResponse($this->errorTemplate)->withStatus(500);
+    }
+
+    private function isJsonRequest(Request $request)
+    {
+        if ($this->isJsonMimeType($request->getHeaderLine('Content-Type'))) {
+            return true;
+        }
+
+        foreach ($request->getHeader('Accept') as $value) {
+            if ($this->isJsonMimeType($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isJsonMimeType($string)
+    {
+        return strncasecmp($string, $this->jsonType, strlen($this->jsonType));
     }
 }
