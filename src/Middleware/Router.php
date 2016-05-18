@@ -46,9 +46,9 @@ class Router
         }
 
         if (strcasecmp($uri->getPath(), $route->getCanonicalPath()) !== 0) {
-            return (new \Zend\Diactoros\Response())
-                ->withHeader('Location', $uri->withPath($route->getCanonicalPath()))
-                ->withStatus(302);
+            return new \Zend\Diactoros\Response('', 302, [
+                'Location' => $uri->withPath($route->getCanonicalPath())
+            ]);
         }
 
         $container = $this->application->getContainer();

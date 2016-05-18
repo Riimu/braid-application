@@ -2,19 +2,19 @@
 
 namespace Riimu\Braid\Template;
 
+use Zend\Diactoros\Response\HtmlResponse;
+
 /**
- * DefaultTemplate.
+ * AbstractTemplate.
  *
  * @author Riikka Kalliomäki <riikka.kalliomaki@gmail.com>
  * @copyright Copyright (c) 2016, Riikka Kalliomäki
  * @license http://opensource.org/licenses/mit-license.php MIT License
  */
-class DefaultTemplate extends LatteTemplate
+abstract class AbstractTemplate implements TemplateInterface
 {
-    public function __construct()
+    protected function getHtmlResponse($output)
     {
-        parent::__construct();
-
-        $this->setTemplatePath(__DIR__);
+        return new HtmlResponse($output);
     }
 }
