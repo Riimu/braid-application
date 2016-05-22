@@ -1,6 +1,6 @@
 <?php
 
-namespace Riimu\Braid\Template;
+namespace Riimu\Braid\Application\Template;
 
 use Psr\Http\Message\ResponseInterface;
 

@@ -3,10 +3,11 @@
 namespace Riimu\Braid\Application\Middleware;
 
 use Riimu\Braid\Application\Application;
-use Riimu\Braid\Template\DefaultTemplate;
-use Riimu\Braid\Template\TemplateInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
+use Riimu\Braid\Application\Template\DefaultTemplate;
+use Riimu\Braid\Application\Template\TemplateInterface;
+use Zend\Diactoros\Response\EmptyResponse;
 
 /**
  * Router.
@@ -46,15 +47,24 @@ class Router
         }
 
         if (strcasecmp($uri->getPath(), $route->getCanonicalPath()) !== 0) {
-            return new \Zend\Diactoros\Response('', 302, [
-                'Location' => $uri->withPath($route->getCanonicalPath())
+            return new EmptyResponse(302, [
+                'Location' => (string) $uri->withPath($route->getCanonicalPath())
             ]);
         }
 
         $container = $this->application->getContainer();
+        $handler = $route->getHandler();
         $stack = $this->application->getMiddlewareStack();
 
-        $stack->push($container->load($route->getHandler()));
+        if ($container->has($handler)) {
+            $stack->push($container->load($handler));
+        } elseif (class_exists($handler)) {
+            $stack->push(new $handler);
+        } elseif (is_callable($handler)) {
+            $stack->push($handler);
+        } else {
+            throw new \UnexpectedValueException("Invalid route handler for " . $route->getCanonicalPath());
+        }
 
         foreach ($route->getParams() as $name => $value) {
             $request = $request->withAttribute($name, $value);

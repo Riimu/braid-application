@@ -2,14 +2,15 @@
 
 namespace Riimu\Braid\Application\Middleware;
 
-use Riimu\Braid\Template\DefaultTemplate;
-use Riimu\Braid\Template\TemplateInterface;
+use Riimu\Braid\Application\Template\DefaultTemplate;
+use Riimu\Braid\Application\Template\TemplateInterface;
 use Whoops\Handler\JsonResponseHandler;
 use Whoops\Handler\PrettyPageHandler;
 use Whoops\Run;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 use Zend\Diactoros\Response\JsonResponse;
+use Zend\Diactoros\Response\TextResponse;
 
 /**
  * ErrorHandler.
@@ -79,7 +80,7 @@ class ErrorHandler
 
             $handler->pushHandler($pageHandler);
 
-            return new \Zend\Diactoros\Response(
+            return new TextResponse(
                 $handler->handleException($exception),
                 500,
                 ['Content-Type' => $contentType]
@@ -97,12 +98,8 @@ class ErrorHandler
     {
         if ($this->isJsonMimeType($request->getHeaderLine('Content-Type'))) {
             return true;
-        }
-
-        foreach ($request->getHeader('Accept') as $value) {
-            if ($this->isJsonMimeType($value)) {
-                return true;
-            }
+        } elseif ($this->isJsonMimeType($request->getHeaderLine('Accept'))) {
+            return true;
         }
 
         return false;
@@ -110,6 +107,6 @@ class ErrorHandler
 
     private function isJsonMimeType($string)
     {
-        return strncasecmp($string, $this->jsonType, strlen($this->jsonType));
+        return strncasecmp($string, $this->jsonType, strlen($this->jsonType)) === 0;
     }
 }

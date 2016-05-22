@@ -80,7 +80,7 @@ class HttpResponse
             $length = $body->getSize();
 
             if ($length !== null) {
-                $this->response = $this->response->withHeader('Content-Length', $length);
+                $this->response = $this->response->withHeader('Content-Length', (string) $length);
             }
         }
 

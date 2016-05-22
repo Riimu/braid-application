@@ -26,7 +26,7 @@ class Application
         $this->container = $container;
         $this->stack = new MiddlewareStack();
 
-        $this->container[Application::class] = $this;
+        $this->container->setValues([Application::class => $this]);
     }
 
     public function getRouter()
@@ -65,15 +65,17 @@ class Application
     {
         $middlewares = $this->container->load('config.braid.middlewares', []);
 
-        $defaults = [
-            new Middleware\Router($this),
-            new Middleware\ErrorHandler(),
-        ];
+        $router = new Middleware\Router($this);
+        $errorHandler = new Middleware\ErrorHandler();
 
-        foreach ($defaults as $default) {
+        if ($this->container->load('config.braid.debug', false)) {
+            $errorHandler->enableDebugMode();
+        }
+
+        foreach ([$router, $errorHandler] as $default) {
             if (!in_array(get_class($default), $middlewares)) {
                 array_unshift($middlewares, get_class($default));
-                $this->container[get_class($default)] = $default;
+                $this->container->setValues([get_class($default) => $default]);
             }
         }
 

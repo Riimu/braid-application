@@ -1,6 +1,6 @@
 <?php
 
-namespace Riimu\Braid\Template;
+namespace Riimu\Braid\Application\Template;
 
 use Latte\Engine;
 use Riimu\Kit\PathJoin\Path;
