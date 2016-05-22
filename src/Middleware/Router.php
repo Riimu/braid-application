@@ -2,12 +2,13 @@
 
 namespace Riimu\Braid\Application\Middleware;
 
-use Riimu\Braid\Application\Application;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\RequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
+use Riimu\Braid\Application\Application;
 use Riimu\Braid\Application\Template\DefaultTemplate;
 use Riimu\Braid\Application\Template\TemplateInterface;
 use Zend\Diactoros\Response\EmptyResponse;
+use Zend\Diactoros\ServerRequest;
 
 /**
  * Router.
@@ -36,6 +37,10 @@ class Router
 
     public function __invoke(Request $request, Response $response, callable $next)
     {
+        if (!$request instanceof ServerRequest) {
+            throw new \InvalidArgumentException("Routing supported only for server requests");
+        }
+
         $uri = $request->getUri();
         $router = $this->application->getRouter();
         $route = $router->route($request->getMethod(), $uri->getPath());
